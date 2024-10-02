@@ -15,8 +15,8 @@ cargas = {
 }
 
 # Parâmetros do algoritmo genético
-populacao_tamanho = 100
-geracoes = 100
+populacao_tamanho = 500
+geracoes = 500
 taxa_mutacao = 0.1
 tamanho_torneio = 5  # Número de participantes do torneio
 
@@ -36,12 +36,23 @@ def aptidao(cromossomo):
                 peso_usado[compartimento] += quantidade * peso
                 lucro_total += quantidade * lucro
 
-    # Verificando restrições
-    for key in compartimentos.keys():
-        if volume_usado[key] > compartimentos[key][0] or peso_usado[key] > compartimentos[key][1]:
-            #return 0  # Penaliza se as restrições não forem atendidas
+    penalidade = 0
 
-            return lucro_total
+    # Verificando restrições de volume e peso
+    for key in compartimentos.keys():
+        volume_max, peso_max = compartimentos[key]
+        if volume_usado[key] > volume_max:
+            # Penalidade para excesso de volume
+            penalidade += (volume_usado[key] - volume_max) # Ajuste o fator de penalidade conforme necessário
+        if peso_usado[key] > peso_max:
+            # Penalidade para excesso de peso
+            penalidade += (peso_usado[key] - peso_max)  # Ajuste o fator de penalidade conforme necessário
+
+    # Reduz o lucro total pela penalidade calculada
+    # lucro_total -= penalidade * 4
+
+    # return max(lucro_total, 0)  # Retorna 0 se o lucro for negativo
+    return lucro_total - penalidade * 4
 
 def selecao_torneio(populacao):
     vencedores = []
@@ -53,11 +64,17 @@ def selecao_torneio(populacao):
 
 def cruzamento(pai1, pai2):
     ponto = random.randint(1, len(pai1) - 1)
-    return pai1[:ponto] + pai2[ponto:]
+    filho1, filho2 = pai1.copy(), pai2.copy()
+    if random.random() < 0.8:
+        filho1 = pai1[:ponto] + pai2[ponto:]
+        filho2 = pai2[:ponto] + pai1[ponto:]
+    return filho1, filho2
+
+
 
 def mutacao(cromossomo):
     for i in range(len(cromossomo)):
-        if random.random() < taxa_mutacao:
+        if random.random() < 0.5:
             cromossomo[i] = random.uniform(0, 1)
 
 def imprimir_alocacao(cromossomo):
@@ -74,9 +91,11 @@ def algoritmo_genetico():
         nova_populacao = selecao_torneio(populacao)
         while len(nova_populacao) < populacao_tamanho:
             pai1, pai2 = random.sample(nova_populacao, 2)
-            filho = cruzamento(pai1, pai2)
-            mutacao(filho)
-            nova_populacao.append(filho)
+            filho1, filho2 = cruzamento(pai1, pai2)
+            mutacao(filho1)
+            mutacao(filho2)
+            nova_populacao.append(filho1)
+            nova_populacao.append(filho2)
 
         populacao = nova_populacao
         
